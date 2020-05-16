@@ -3,7 +3,7 @@ var R_PWM = NodeMCU.D1,
     L_PWM = NodeMCU.D2,
     
     L_EN = NodeMCU.D3,
-    R_EN = NodeMCU.D4,
+    R_EN = NodeMCU.D5,
     
     PDL = NodeMCU.D8, // Pedal switch
     
@@ -12,71 +12,77 @@ var R_PWM = NodeMCU.D1,
     
     currentDirection = ''; // Reverse switch
 
+var Config = {
+    debounceTime: 500,
+  
+    minSpeed: 0.3,
+    maxSpeed: 1.0
+};
 
 
 function onInit()
 {
   console.log('onInit');
   
-  // Set voltage LOW
+  // Set inputs
   pinMode(PDL, 'input');
-  pinMode(FWD, 'input_pullup');
-  pinMode(RVS, 'input_pullup');
+  pinMode(FWD, 'input');
+  pinMode(RVS, 'input');
 
-  // PDL switch pressed
-  setWatch(drive, PDL, { repeat: true, edge: 'both', debounce: 100 });
-  
-  // Direction changeFWD
-  setWatch(e => {
-    direction_change(e, 'FWD');
-  }, FWD, { repeat: true, edge: 'falling', debounce: 100 });
-  
-  // Direction change RVS
-  setWatch(e => {
-    direction_change(e, 'RVS');
-  }, RVS, { repeat: true, edge: 'falling', debounce: 100 });
+  setInterval(e => {
+    checkDriveStatus();
+  }, 500);
 }
 
-
-function drive( e )
+function checkDriveStatus()
 {
-  console.log( 'Direction is: ', currentDirection );
-  
-  // Stop
-  if( e !== undefined && !e.state ){
-    stop();
-  }
-  
-  if( currentDirection == 'FWD' )
-  {
+  let dir = getDirection(),
+      speed = getPedal();
     
-    
+  if( speed == 0 || dir == 0 ){
+    return stop();
   }
   
   digitalWrite(L_EN, HIGH);
   digitalWrite(R_EN, HIGH);
-  
-  analogWrite(R_PWM, 0);
-  analogWrite(L_PWM, 0.3);
-  
-  console.log('Drive...', e);
-  
+
+  if( dir == 1 )
+  {
+    analogWrite(R_PWM, 1);
+    analogWrite(L_PWM, 0);
+
+    console.log( '[DRIVE] FWD Speed: ', speed, ', Dir: ', dir );
+
+    return true;
+  }
+  else if( dir == 2 )
+  {
+    analogWrite(R_PWM, 0);
+    analogWrite(L_PWM, 1);
+
+    console.log( '[DRIVE] RVS Speed: ', speed, ', Dir: ', dir );
+
+    return true;
+  }
 }
 
-function direction_change( e, dir )
+function getDirection()
 {
-  console.log('Change direction to ', dir);
+  let FWD_Status = digitalRead(FWD),
+      RVS_Status = digitalRead(RVS);
   
-  currentDirection = dir;
-  
-  // Drive
-  drive();
+  if( FWD_Status ) return 1;
+  if( RVS_Status ) return 2;
+
+  return 0; 
 }
 
-
-
-
-
+function getPedal()
+{
+  let PDL_Status = digitalRead(PDL);
+  
+  return PDL_Status;
+}
 
 function stop()
 {
@@ -86,5 +92,5 @@ function stop()
   analogWrite(R_PWM, 0);
   analogWrite(L_PWM, 0);
   
-  console.log('Stop');
+  return true;
 }
