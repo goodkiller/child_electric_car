@@ -60,7 +60,9 @@ exports.commandRecived = function() {
 
   var me = this;
   console.log('nextionCommandRecived called');
-  console.log(lastNextionCommand);
+  console.log(lastNextionCommand, lastNextionCommand[0]);
+  console.log('CMD', lastNextionCommand);
+  
   switch (lastNextionCommand[0]) {
     case 0x1a: // variable name is invalid
       console.log('0x1a: variable name is invalid');
