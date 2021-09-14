@@ -59,16 +59,16 @@ exports.commandRecived = function() {
   var lastNextionCommand=this.lastNextionCommand;
 
   var me = this;
-  console.log('nextionCommandRecived called');
-  console.log(lastNextionCommand, lastNextionCommand[0]);
-  console.log('CMD', lastNextionCommand);
+ // console.log('nextionCommandRecived called');
+ // console.log(lastNextionCommand, lastNextionCommand[0]);
+ // console.log('CMD', lastNextionCommand);
   
   switch (lastNextionCommand[0]) {
     case 0x1a: // variable name is invalid
-      console.log('0x1a: variable name is invalid');
+      //console.log('0x1a: variable name is invalid');
       break;
     case 0x1b: // variable name is invalid
-      console.log('0x1b: variable operation invalid');
+      //console.log('0x1b: variable operation invalid');
       break;
 
     case 0x65: // touch event
