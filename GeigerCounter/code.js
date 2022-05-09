@@ -1,11 +1,13 @@
 
+
 console.log('Start');
 
 // WIFI
 var _wifi_ssid = '***',
-    _wifi_password = '***';
+    _wifi_password = '***',
     readings = [],
-    CPM = 0;
+    CPM = 0,
+    net_disconnected_count = 0;
 
 var wifi = require("Wifi"),
     http = require("http");
@@ -33,8 +35,7 @@ function pageHandler(req, res)
 // Send data
 function sendData(postURL, data, callback)
 {
-  // Check if wifi connection exists
-  if( wifi.getStatus().station == 'connected' )
+  if( isNetwork() )
   {
     let content = JSON.stringify(data);
 
@@ -69,7 +70,7 @@ function printReadings()
   
   for( let i in readings )
   {
-    str = i + ' - ' + readings[i] + '<br />';
+    str += i + ' - ' + readings[i] + '<br />';
   }
   
   return str;
@@ -77,8 +78,18 @@ function printReadings()
 
 function addReadings( value )
 {
-  readings[Math.round(Date.now())] = CPM;
-  readings.splice( 0, readings.length - 10);
+  readings[Math.round(Date.now())] = value;
+  
+  for(let i in readings){
+    if(i > 10){
+      console.log('delete:', i, readings[i]);
+      delete readings[i];
+    }
+  }
+  
+  sendData('http://radioaktiivsus.ee/api/cpm', { cpm: value }, d => {
+    console.log('[HTTP] Response:', d);
+  });
 }
 
 function readSerial()
@@ -89,14 +100,43 @@ function readSerial()
 
     CPM = parseInt(data);
 
-    if( !isNaN(CPM) )
-    {
+    if( !isNaN(CPM) ){
       addReadings(CPM);
-      
-      sendData('http://radioaktiivsus.ee/api/cpm', { cpm: CPM }, d => {
-        console.log('[HTTP] Response:', d);
-      });
     }
+  });
+}
+
+// Check if wifi connection exists
+function isNetwork(){
+  return (wifi.getStatus().station == 'connected' && wifi.getIP().ip != '0.0.0.0');
+}
+
+function wifiConnect()
+{
+  console.log('[WIFI] Connect to', _wifi_ssid);
+
+  // Connect to wifi
+  wifi.connect( _wifi_ssid, { password: _wifi_password }, e => {
+
+    console.log('[WIFI] Connecting to ' + _wifi_ssid + ' ...');
+
+    if(e){
+      console.log('[WIFI] Connection Error:', e);
+      return;
+    }
+
+    wifi.setHostname('GeigerCounter');
+    wifi.setSNTP('1.ee.pool.ntp.org', '2');
+
+    wifi.getIP((f, ip) => {
+
+      console.log('[WIFI] Connected:', ip);
+
+      wifi.save(); // Next reboot will auto-connect
+
+      // Create server
+      http.createServer(pageHandler).listen(80);
+    });
   });
 }
 
@@ -104,22 +144,22 @@ function onInit()
 {
   console.log('Geiger Counter v0.2');
 
-  // Connect to wifi
-  wifi.connect( _wifi_ssid, { password: _wifi_password }, cb => {
-    wifi.setHostname('GeigerCounter');
-    wifi.setSNTP('1.ee.pool.ntp.org', '2');
-  });
-
-  // Wifi connected
-  wifi.on('connected', details => {
-    console.log('[WIFI] Connected:', details);
-    http.createServer(pageHandler).listen(80);
-  });
+  readSerial();
+  wifiConnect();
 
   // Wifi disconnected
   wifi.on('disconnected', details => {
-    console.log('[WIFI] Disconnected:', details);
-  });
 
-  readSerial();
+    console.log('[WIFI] Disconnected:', details);
+
+    wifiConnect();
+
+    net_disconnected_count++;
+
+    if(net_disconnected_count > 15){
+      console.log("[WIFI] too much disconnected events, let's reboot!");
+      E.reboot();
+    }
+  });
 }
+
