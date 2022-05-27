@@ -14,6 +14,7 @@ RGBWLed.prototype._write = function (stop) {
   var that = this;
   this.pins.forEach(function (e, i) {
     analogWrite(e, that.state ? that.rgbwAnalog[i] : 0);
+    console.log('RGBW led:', e, '-', this.rgbwAnalog[i]);
   });
 };
 RGBWLed.prototype._stop = function () {
