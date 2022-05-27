@@ -5,21 +5,31 @@ function RGBWLed(pins, state, color, isAnode) {
   this.pins.forEach(function (e) {pinMode(e, "output");});
   this.state = typeof state === "undefined" ? true : !!state;
   this.rgbwAnalog = [];
+  this.intensity = 100;
   this.setColor(typeof color === "undefined" ? "FFFFFF" : color);
   this.intervalId = 0;
   this._write(true);
 }
+RGBWLed.prototype._map = function(x, in_min, in_max, out_min, out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+};
 RGBWLed.prototype._write = function (stop) {
   if (stop) {this._stop();}
   var that = this;
   this.pins.forEach(function (e, i) {
-    analogWrite(e, that.state ? that.rgbwAnalog[i] : 0);
     
-    console.log('RGBW led:', e, '-', (that.state ? that.rgbwAnalog[i] : 0));
+    let val = that.state ? this._map(that.rgbwAnalog[i], 0, 100, 0.0000000, 1.0000000) : 0;
+    
+    analogWrite(e, val);
+    
+    console.log('RGBW led:', e, '-', val);
   });
 };
 RGBWLed.prototype._stop = function () {
   try {clearInterval(this.intervalId);} catch (e) { }
+};
+RGBWLed.prototype.setIntensity = function (intensity) {
+  this.intensity = intensity;
 };
 RGBWLed.prototype.setColor = function (color) {
   for (var i = 0, s = -6; i < 3; i += 1, s += 2) {
