@@ -20,7 +20,7 @@ RGBWLed.prototype._write = function (stop) {
     
     let val = that.state ? that._map(that.intensity, 0, 100, 0.0000000, that.rgbwAnalog[i]) : 0;
     
-    analogWrite(e, val);
+    analogWrite(e, val, { freq : 500 });
     
     console.log('RGBW led:', e, '-', val);
   });
