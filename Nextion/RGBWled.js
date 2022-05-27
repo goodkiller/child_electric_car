@@ -18,7 +18,7 @@ RGBWLed.prototype._write = function (stop) {
   var that = this;
   this.pins.forEach(function (e, i) {
     
-    let val = that.state ? this._map(that.intensity, 0, 100, 0.0000000, that.rgbwAnalog[i]) : 0;
+    let val = that.state ? that._map(that.intensity, 0, 100, 0.0000000, that.rgbwAnalog[i]) : 0;
     
     analogWrite(e, val);
     
